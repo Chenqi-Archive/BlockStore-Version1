@@ -18,6 +18,7 @@ private:
 	virtual void SetChildSize(uint64 child_index, uint64 size) {}
 	virtual void DestroyChild(uint64 child_index) {}
 public:
+	Win32() : Block(nullptr) {}
 	bool HasChild(const wstring& child_name) {}
 	Handle CreateChild(const wstring& child_name) {}
 	Handle OpenChild(const wstring& child_name) {}
