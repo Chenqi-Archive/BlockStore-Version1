@@ -24,6 +24,9 @@ BEGIN_NAMESPACE(BlockStore)
 template<class T>
 using ref_ptr = T*;
 
+template<class T>
+using alloc_ptr = T*;
+
 
 using uint64 = unsigned long long;
 using wchar = wchar_t;

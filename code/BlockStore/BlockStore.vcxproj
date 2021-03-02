@@ -155,9 +155,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="array_block.h" />
     <ClInclude Include="block.h" />
     <ClInclude Include="core.h" />
-    <ClInclude Include="win32.h" />
+    <ClInclude Include="win32_file_system.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="win32_file_system.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

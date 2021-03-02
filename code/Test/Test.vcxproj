@@ -153,6 +153,9 @@
   <ItemGroup>
     <ClCompile Include="test.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ArrayBlock_and_Win32FileSystem_test.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
