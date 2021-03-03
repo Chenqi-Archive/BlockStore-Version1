@@ -1,2 +1,2 @@
-# BinaryStore
-A storage architecture for binary files.
+# DynamicStore
+A storage engine for hierarchical arrays with variable length.

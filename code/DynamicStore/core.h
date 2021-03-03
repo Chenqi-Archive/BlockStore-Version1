@@ -10,6 +10,7 @@
 #define END_NAMESPACE(name)   }
 #define Anonymous
 
+
 #define ABSTRACT_BASE _declspec(novtable)
 #define pure = 0
 
@@ -18,7 +19,7 @@
 #include <cassert>
 
 
-BEGIN_NAMESPACE(BlockStore)
+BEGIN_NAMESPACE(DynamicStore)
 
 
 template<class T>
@@ -32,4 +33,4 @@ using uint64 = unsigned long long;
 using wchar = wchar_t;
 
 
-END_NAMESPACE(BlockStore)
+END_NAMESPACE(DynamicStore)

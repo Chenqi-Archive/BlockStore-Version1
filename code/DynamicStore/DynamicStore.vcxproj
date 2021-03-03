@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{92ab966b-fefc-4d2d-b776-2360f95f6bc2}</ProjectGuid>
-    <RootNamespace>BlockStore</RootNamespace>
+    <ProjectGuid>{5b51f4d3-10c8-4c56-a3b8-315a67f33c02}</ProjectGuid>
+    <RootNamespace>DynamicStore</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -155,13 +155,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="array_block.h" />
-    <ClInclude Include="block.h" />
     <ClInclude Include="core.h" />
-    <ClInclude Include="win32_file_system.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="win32_file_system.cpp" />
+    <ClInclude Include="engine.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
