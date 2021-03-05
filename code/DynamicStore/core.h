@@ -1,5 +1,11 @@
 #pragma once
 
+#ifdef DYNAMICSTORE_EXPORTS							
+#define DYNAMICSTORE_API __declspec(dllexport)		
+#else
+#define DYNAMICSTORE_API __declspec(dllimport)		
+#endif
+
 
 #define __ToString(name) #name
 #define _ToString(name) __ToString(name)
