@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core.h"
+#include "uncopyable.h"
 
 
 BEGIN_NAMESPACE(DynamicStore)
@@ -9,25 +10,46 @@ using Index = uint64;
 constexpr Index invalid_index = (Index)-1;
 
 
-class Engine {
+class Engine : Uncopyable {
 public:
-	Engine() {}
-	~Engine() {}
+	Engine();
+	~Engine() { Close(); }
+
+private:
+	using HANDLE = void*;
+	HANDLE _file;
+	uint64 _size;
+public:
+	bool HasOpened() const;
+	void Open(const wchar file[]);
+	void Close();
+private:
+	void SetSize(uint64 size);
+
+private:
+	uint64 GetMetadataSize() const {
+
+	}
+	void LoadMetadata(void* data) {
+
+	}
+	void StoreMetadata(void* data, uint64 size) {
+
+		// format 
+	}
 
 public:
-	void Load(const wchar file[]) {}
-
+	// Metadata should implement Check and Init function.
 	template<class Metadata>
 	void GetMetadata(Metadata& metadata) {
-		// Metadata should implement Check and Init function.
-
-		// First check metadata size.
-
-		// If size match, load metadata and Check.
-
-		// If check fails, initialize metadata.
-
-
+		do {
+			if (GetMetadataSize() != sizeof(Metadata)) { break; }
+			LoadMetadata(&metadata);
+			if (metadata.Check() != true) { break; }
+			return;
+		} while (false);
+		metadata.Init();
+		StoreMetadata(&metadata, sizeof(Metadata));
 	}
 
 	template<class Metadata>
@@ -35,6 +57,7 @@ public:
 		Metadata metadata; GetMetadata(metadata);
 		return metadata;
 	}
+
 
 public:
 	Index CreateArray() { return 0; }
@@ -69,7 +92,7 @@ public:
 	}
 
 	template<class OutputIterator>
-	void Load(OutputIterator it) { 
+	void Load(OutputIterator it) {
 		Load(0, _length, it);
 	}
 

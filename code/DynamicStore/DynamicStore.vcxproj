@@ -157,6 +157,11 @@
   <ItemGroup>
     <ClInclude Include="core.h" />
     <ClInclude Include="engine.h" />
+    <ClInclude Include="uncopyable.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="engine_data.cpp" />
+    <ClCompile Include="engine_win32.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
