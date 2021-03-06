@@ -1,4 +1,4 @@
-#include "test.h"
+#include "TextEditor.h"
 
 
 #ifdef _DEBUG
