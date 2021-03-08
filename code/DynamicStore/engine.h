@@ -20,24 +20,22 @@ public:
 	DYNAMICSTORE_API static std::unique_ptr<Engine> Create(const wchar file[]);
 	virtual ~Engine() pure;
 
-	//// format and metadata ////
-public:
-	virtual void Format() pure;
-public:
-	static constexpr uint64 max_metadata_size = 256;
+	//// metadata ////
 private:
-	virtual void LoadMetadata(void* data, uint64 size) const pure;
-	virtual void StoreMetadata(const void* data, uint64 size) pure;
+	virtual void LoadUserMetadata(void* data, uint64 size) const pure;
+	virtual void StoreUserMetadata(const void* data, uint64 size) pure;
+public:
+	static constexpr uint64 max_metadata_size = 200;
 public:
 	template<class Metadata>
 	Metadata GetMetadata() { 
 		static_assert(sizeof(Metadata) <= max_metadata_size);
-		Metadata metadata; LoadMetadata(&metadata, sizeof(Metadata)); return metadata; 
+		Metadata metadata; LoadUserMetadata(&metadata, sizeof(Metadata)); return metadata;
 	}
 	template<class Metadata>
 	void SetMetadata(const Metadata& metadata) {
 		static_assert(sizeof(Metadata) <= max_metadata_size);
-		StoreMetadata(&metadata, sizeof(Metadata));
+		StoreUserMetadata(&metadata, sizeof(Metadata));
 	}
 
 	//// array operations ////
