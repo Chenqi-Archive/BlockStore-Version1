@@ -25,7 +25,7 @@ private:
 	virtual void LoadUserMetadata(void* data, uint64 size) const pure;
 	virtual void StoreUserMetadata(const void* data, uint64 size) pure;
 public:
-	static constexpr uint64 max_metadata_size = 200;
+	static constexpr uint64 max_metadata_size = 144;
 public:
 	template<class Metadata>
 	Metadata GetMetadata() { 

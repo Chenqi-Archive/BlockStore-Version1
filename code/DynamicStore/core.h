@@ -35,7 +35,6 @@ template<class T>
 using alloc_ptr = T*;
 
 
-using uint = unsigned int;
 using uint64 = unsigned long long;
 using wchar = wchar_t;
 
