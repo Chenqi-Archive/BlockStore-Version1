@@ -79,7 +79,7 @@ static_assert(index_entry_size == 16);
 
 //// static metadata format ////
 
-constexpr ArrayIndex free_index_tail = (uint64)-1;
+constexpr ArrayIndex free_index_tail = ArrayIndex((uint64)-1);
 constexpr uint64 free_block_tail = (uint64)-1;
 constexpr uint64 max_user_metadata_size = Engine::max_metadata_size;
 

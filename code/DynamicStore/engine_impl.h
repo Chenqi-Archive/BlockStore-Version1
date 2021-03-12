@@ -38,13 +38,13 @@ private:
 		return (char*)_map_view_address + cluster_offset;
 	}
 
-	template<class T> 
+	template<class T>
 	static T Get(void* cluster_address, uint64 offset_in_cluster) {
 		assert(offset_in_cluster < cluster_size);
 		assert(offset_in_cluster + sizeof(T) <= cluster_size);
 		return *(T*)((char*)cluster_address + offset_in_cluster);
 	}
-	template<class T> 
+	template<class T>
 	static void Set(void* cluster_address, uint64 offset_in_cluster, const T& obj) {
 		assert(offset_in_cluster < cluster_size);
 		assert(offset_in_cluster + sizeof(T) <= cluster_size);
@@ -80,11 +80,12 @@ private:
 private:
 	bool LoadAndCheck();
 	void Format();
+	bool CheckConsistency();
 
 
 	//// static metadata management ////
 private:
-	StaticMetadata _static_metadata;
+	StaticMetadata& GetStaticMetadata() const { return *(StaticMetadata*)GetClusterAddress(0); }
 private:
 	virtual void LoadUserMetadata(void* data, uint64 size) const override;
 	virtual void StoreUserMetadata(const void* data, uint64 size) override;
@@ -102,8 +103,8 @@ private:
 
 	// space recycling and defragmentation
 private:
-	void SortFreeBlockList();
-	void RecycleFreeBlockList();
+	void SortFreeBlockList() {}		  /* to implement */
+	void RecycleFreeBlockList() {}	  /* to implement */
 
 
 	//// L4096Plus cluster hierarchy management ////
@@ -114,22 +115,35 @@ private:
 		IndexEntry entry;
 	private:
 		struct ClusterIndexLevelStatus {
-			uint64 cluster_number;
-			uint64 current_cluster_logic_index;
-			uint64 current_cluster_offset;
+			uint64 cluster_number = 0;
+			mutable uint64 current_cluster_logic_index = (uint64)-1;
+			mutable uint64 current_cluster_offset = (uint64)-1;
 		};
 		ClusterIndexLevelStatus cluster_level_stack[max_cluster_hierarchy_depth];
-		uint64 stack_top_level;
-		uint64 current_offset_in_array;
+		uint64 stack_level_count;
+		mutable uint64 current_offset_in_array;
 	public:
 		L4096PlusClusterIterator(EngineImpl& engine, IndexEntry entry);
-		void SeekToCluster(uint64 offset_in_array);
+	private:
+		void ExpandToSizeOfLevel(uint64 level, uint64 new_cluster_number);
+	private:
+		void ExpandToSize(uint64 new_size);
+		void ShrinkToSize(uint64 new_size);
 	public:
-		void GotoPrevCluster() {
+		void Resize(uint64 new_size) {
+			assert(new_size >= cluster_size);
+			current_offset_in_array = -1; // invalidate iterator
+			if (new_size > entry.array_size) { ExpandToSize(new_size); return; }
+			if (new_size < entry.array_size) { ShrinkToSize(new_size); return; }
+		}
+		IndexEntry GetEntry() const { return entry; }
+	public:
+		void SeekToCluster(uint64 offset_in_array) const ;
+		void GotoPrevCluster() const {
 			assert(current_offset_in_array != -1);
 			SeekToCluster(current_offset_in_array - cluster_size);
 		}
-		void GotoNextCluster() {
+		void GotoNextCluster() const {
 			assert(current_offset_in_array != -1);
 			SeekToCluster(current_offset_in_array + cluster_size);
 		}
@@ -143,26 +157,26 @@ private:
 		}
 	};
 
-	uint64 AllocateClusterIndexBlock(uint64 first_cluster_offset, uint64 size);
-	void DeallocateClusterIndexBlock(uint64 cluster_index_block_offset, uint64 current_allocated_size);
-
 
 	//// indexed arrays management ////
 private:
 	uint64 GetIndexEntryOffset(ArrayIndex index) const;
 	IndexEntry GetIndexEntry(ArrayIndex index) const;
 	void SetIndexEntry(ArrayIndex index, IndexEntry entry);
-	
-	void InitializeIndexEntry(uint64 index_entry_offset_begin, uint64 index_entry_offset_end);
-	void ExtendIndexTable();
+
+	ArrayIndex InitializeIndexEntry(ArrayIndex index_begin, IndexEntry* index_entry_begin, uint64 index_entry_number);
+	ArrayIndex InitializeIndexEntry(ArrayIndex index_begin, ArrayIndex index_end);
+	ArrayIndex ExtendIndexTable();
 	ArrayIndex AllocateIndex();
 	void DeallocateIndex(ArrayIndex index);
 
-	IndexEntry UpgradeL4096PlusIndexEntry(IndexEntry entry_with_new_size);
-	IndexEntry DowngradeL4096PlusIndexEntry(uint64 old_offset, uint64 old_size);
-	IndexEntry ResizeL4096PlusIndexEntry(uint64 old_offset, uint64 old_size, uint64 new_size);
+	IndexEntry ResizeL4096PlusIndexEntry(IndexEntry entry, uint64 new_size);
 	IndexEntry ResizeIndexEntry(IndexEntry entry, uint64 new_size);
 
+private:
+	bool IsIndexValid(ArrayIndex index) const {
+		return index.value * index_entry_size < GetStaticMetadata().index_table_entry.array_size;
+	}
 public:
 	virtual ArrayIndex CreateArray() override;
 	virtual void DestroyArray(ArrayIndex index) override;

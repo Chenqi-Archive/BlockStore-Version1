@@ -11,7 +11,7 @@ BEGIN_NAMESPACE(DynamicStore)
 struct ArrayIndex {
 	static constexpr uint64 invalid_array_index_value = (uint64)-1;
 	uint64 value = invalid_array_index_value;
-	constexpr ArrayIndex(uint64 value) : value(value) {}
+	constexpr explicit ArrayIndex(uint64 value) : value(value) {}
 	bool IsInvalid() const { return value == invalid_array_index_value; }
 };
 
