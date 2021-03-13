@@ -121,35 +121,26 @@ private:
 		};
 		ClusterIndexLevelStatus cluster_level_stack[max_cluster_hierarchy_depth];
 		uint64 stack_level_count;
-		mutable uint64 current_offset_in_array;
 	public:
 		L4096PlusClusterIterator(EngineImpl& engine, IndexEntry entry);
 	private:
 		void ExpandToSizeOfLevel(uint64 level, uint64 new_cluster_number);
+		void ShrinkToSizeOfLevel(uint64 level, uint64 new_cluster_number);
 	private:
 		void ExpandToSize(uint64 new_size);
 		void ShrinkToSize(uint64 new_size);
 	public:
-		void Resize(uint64 new_size) {
-			assert(new_size >= cluster_size);
-			current_offset_in_array = -1; // invalidate iterator
-			if (new_size > entry.array_size) { ExpandToSize(new_size); return; }
-			if (new_size < entry.array_size) { ShrinkToSize(new_size); return; }
-		}
+		void Resize(uint64 new_size);
 		IndexEntry GetEntry() const { return entry; }
+	private:
+		void SeekToClusterOfLevel(uint64 level, uint64 cluster_logic_index) const;
 	public:
-		void SeekToCluster(uint64 offset_in_array) const ;
-		void GotoPrevCluster() const {
-			assert(current_offset_in_array != -1);
-			SeekToCluster(current_offset_in_array - cluster_size);
-		}
-		void GotoNextCluster() const {
-			assert(current_offset_in_array != -1);
-			SeekToCluster(current_offset_in_array + cluster_size);
+		void SeekToCluster(uint64 cluster_logic_index) const {
+			SeekToClusterOfLevel(0, cluster_logic_index);
 		}
 	public:
 		uint64 GetCurrentClusterOffset() const {
-			assert(current_offset_in_array != -1);
+			assert(cluster_level_stack[0].current_cluster_logic_index != -1);
 			return cluster_level_stack[0].current_cluster_offset;
 		}
 		void* GetCurrentClusterAddress() const {
