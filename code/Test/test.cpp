@@ -1,4 +1,4 @@
-#include "TextEditor.h"
+#include "test_array_length.h"
 
 
 #ifdef _DEBUG

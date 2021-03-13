@@ -154,7 +154,9 @@
     <ClCompile Include="test.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="TextEditor.h" />
+    <ClInclude Include="test_array_allocation.h" />
+    <ClInclude Include="test_array_length.h" />
+    <ClInclude Include="test_TextEditor.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

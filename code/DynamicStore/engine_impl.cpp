@@ -63,17 +63,20 @@ void EngineImpl::Format() {
 }
 
 bool EngineImpl::CheckConsistency() {
-
+	return true;
 }
 
 void EngineImpl::LoadUserMetadata(void* data, uint64 size) const {
 	assert(size <= max_user_metadata_size);
-	memcpy(data, GetStaticMetadata().user_metadata, size);
+	StaticMetadata& static_metadata = GetStaticMetadata();
+	memcpy(data, static_metadata.user_metadata, std::min(static_metadata.user_metadata_size, size));
 }
 
 void EngineImpl::StoreUserMetadata(const void* data, uint64 size) {
 	assert(size <= max_user_metadata_size);
-	memcpy(GetStaticMetadata().user_metadata, data, size);
+	StaticMetadata& static_metadata = GetStaticMetadata();
+	static_metadata.user_metadata_size = size;
+	memcpy(static_metadata.user_metadata, data, size);
 }
 
 uint64 EngineImpl::InitializeClusterSection(BlockType block_type, uint64 cluster_offset, uint64 begin_offset, uint64 end_offset) {
@@ -288,19 +291,16 @@ void EngineImpl::L4096PlusClusterIterator::ShrinkToSize(uint64 new_size) {
 	} else { // new_level_count < stack_level_count && cluster_number == 1
 		// Deallocate clusters from new_level_count to stack_level_count - 1.
 		uint64 old_size = cluster_level_stack[stack_level_count - 1].cluster_number * cluster_index_size;
-		uint64 current_level = new_level_count;
-		for (; current_level < stack_level_count; ++current_level) {
+		for (uint64 current_level = new_level_count; current_level < stack_level_count; ++current_level) {
 			ShrinkToSizeOfLevel(current_level, 1);
 		}
 		// Deallocate size dependent block for stack_level_count.
-		assert(current_level == stack_level_count - 1);
 		uint64 current_root_offset = engine.Get<uint64>(entry.offset);
 		BlockType old_type = GetBlockType(old_size);
 		assert(old_type > BlockType::L8 && old_type < BlockType::L4096Plus);
 		engine.DeallocateBlock(old_type, entry.offset);
 		// Deallocate 4k clusters from stack_level_count - 1 to new_level_count + 1.
-		uint64 current_level = stack_level_count - 1;
-		for (; current_level > new_level_count; --current_level) {
+		for (uint64 current_level = stack_level_count - 1; current_level > new_level_count; --current_level) {
 			uint64 next_root_offset = engine.Get<uint64>(current_root_offset);
 			engine.DeallocateBlock(BlockType::L4096, current_root_offset);
 			current_root_offset = next_root_offset;
@@ -394,7 +394,6 @@ ArrayIndex EngineImpl::InitializeIndexEntry(ArrayIndex index_begin, IndexEntry* 
 }
 
 ArrayIndex EngineImpl::InitializeIndexEntry(ArrayIndex index_begin, ArrayIndex index_end){
-	assert(GetClusterNumber(index_begin.value * index_entry_size) == GetClusterNumber(index_end.value * index_entry_size));
 	uint64 index_entry_begin_offset = GetIndexEntryOffset(index_begin);
 	void* cluster_address = GetClusterAddress(index_entry_begin_offset & cluster_offset_mask);
 	IndexEntry* index_entry_begin = (IndexEntry*)((char*)cluster_address + (index_entry_begin_offset & ~cluster_offset_mask));

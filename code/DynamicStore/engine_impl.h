@@ -48,16 +48,16 @@ private:
 	static void Set(void* cluster_address, uint64 offset_in_cluster, const T& obj) {
 		assert(offset_in_cluster < cluster_size);
 		assert(offset_in_cluster + sizeof(T) <= cluster_size);
-		*(T*)((char*)cluster_address + offset_in_cluster) = pbj;
+		*(T*)((char*)cluster_address + offset_in_cluster) = obj;
 	}
 
 	template<class T>
-	static T Get(uint64 offset_in_file) {
+	T Get(uint64 offset_in_file) const {
 		void* cluster_address = GetClusterAddress(offset_in_file & cluster_offset_mask);
 		return Get<T>(cluster_address, offset_in_file & ~cluster_offset_mask);
 	}
 	template<class T>
-	static void Set(uint64 offset_in_file, const T& obj) {
+	void Set(uint64 offset_in_file, const T& obj) {
 		void* cluster_address = GetClusterAddress(offset_in_file & cluster_offset_mask);
 		Set<T>(cluster_address, offset_in_file & ~cluster_offset_mask, obj);
 	}
@@ -166,7 +166,7 @@ private:
 
 private:
 	bool IsIndexValid(ArrayIndex index) const {
-		return index.value * index_entry_size < GetStaticMetadata().index_table_entry.array_size;
+		return index.value < GetStaticMetadata().index_table_entry.array_size / index_entry_size;
 	}
 public:
 	virtual ArrayIndex CreateArray() override;

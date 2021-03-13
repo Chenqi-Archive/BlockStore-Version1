@@ -10,8 +10,8 @@ BEGIN_NAMESPACE(DynamicStore)
 
 struct ArrayIndex {
 	static constexpr uint64 invalid_array_index_value = (uint64)-1;
-	uint64 value = invalid_array_index_value;
-	constexpr explicit ArrayIndex(uint64 value) : value(value) {}
+	uint64 value;
+	constexpr ArrayIndex(uint64 value = invalid_array_index_value) : value(value) {}
 	bool IsInvalid() const { return value == invalid_array_index_value; }
 };
 
@@ -19,7 +19,7 @@ struct ArrayIndex {
 struct ABSTRACT_BASE Engine {
 public:
 	DYNAMICSTORE_API static std::unique_ptr<Engine> Create(const wchar file[]);
-	virtual ~Engine() pure;
+	virtual ~Engine() pure {}
 
 	//// metadata ////
 private:

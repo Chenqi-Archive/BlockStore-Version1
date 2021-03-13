@@ -16,7 +16,7 @@ using std::vector;
 
 
 Engine& GetEngine() {
-	static std::unique_ptr<Engine> engine(Engine::Create(L"test.dat"));
+	static std::unique_ptr<Engine> engine(Engine::Create(L"R:\\test_TextEditor.dat"));
 	return *engine;
 }
 

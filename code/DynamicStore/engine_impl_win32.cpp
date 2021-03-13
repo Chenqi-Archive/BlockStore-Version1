@@ -32,7 +32,8 @@ EngineImpl::~EngineImpl() {
 
 void EngineImpl::SetSize(uint64 size) {
 	UndoMapping();
-	if (SetFilePointerEx(_file, { size }, NULL, FILE_BEGIN) == false) { assert(false); }
+	LARGE_INTEGER file_size; file_size.QuadPart = size;
+	if (SetFilePointerEx(_file, file_size, NULL, FILE_BEGIN) == false) { assert(false); }
 	if (SetEndOfFile(_file) == false) { assert(false); }
 	_size = size;
 	DoMapping();

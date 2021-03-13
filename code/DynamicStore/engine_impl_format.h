@@ -79,7 +79,7 @@ static_assert(index_entry_size == 16);
 
 //// static metadata format ////
 
-constexpr ArrayIndex free_index_tail = ArrayIndex((uint64)-1);
+constexpr ArrayIndex free_index_tail = ArrayIndex();
 constexpr uint64 free_block_tail = (uint64)-1;
 constexpr uint64 max_user_metadata_size = Engine::max_metadata_size;
 
@@ -87,10 +87,13 @@ struct StaticMetadata {
 	uint64 file_size;
 	IndexEntry index_table_entry;
 	union {
-		ArrayIndex free_index_head;
-		uint64 free_block_head[block_type_number - 1];
+		ArrayIndex free_index_head;					    // free index head | 
+		uint64 free_block_head[block_type_number];	    //              L8 |  L16  |  ...  | L2048 | L4096
+		struct {									    //                                         | free cluster head
+			uint64 _padding[block_type_number - 1];
+			uint64 free_cluster_head;
+		};
 	};
-	uint64 free_cluster_head; // &free_block_head[L4096] == &free_cluster_head.
 	uint64 user_metadata_size;
 	char user_metadata[max_user_metadata_size];
 };

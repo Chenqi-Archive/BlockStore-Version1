@@ -20,7 +20,13 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="TextEditor.h">
+    <ClInclude Include="test_TextEditor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_array_length.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_array_allocation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
