@@ -88,11 +88,7 @@ struct StaticMetadata {
 	IndexEntry index_table_entry;
 	union {
 		ArrayIndex free_index_head;					    // free index head | 
-		uint64 free_block_head[block_type_number];	    //              L8 |  L16  |  ...  | L2048 | L4096
-		struct {									    //                                         | free cluster head
-			uint64 _padding[block_type_number - 1];
-			uint64 free_cluster_head;
-		};
+		uint64 free_block_head[block_type_number];	    //              L8 |  L16  |  ...  | L2048 | L4096 (free cluster head)
 	};
 	uint64 user_metadata_size;
 	char user_metadata[max_user_metadata_size];
