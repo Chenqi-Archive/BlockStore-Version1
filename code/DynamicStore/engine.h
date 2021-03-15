@@ -21,6 +21,7 @@ public:
 	DYNAMICSTORE_API static std::unique_ptr<Engine> Create(const wchar file[]);
 	virtual ~Engine() pure {}
 
+
 	//// metadata ////
 private:
 	virtual void LoadUserMetadata(void* data, uint64 size) const pure;
@@ -38,6 +39,7 @@ public:
 		static_assert(sizeof(Metadata) <= max_metadata_size);
 		StoreUserMetadata(&metadata, sizeof(Metadata));
 	}
+
 
 	//// array operations ////
 public:

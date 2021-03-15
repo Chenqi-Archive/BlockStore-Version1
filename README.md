@@ -1,2 +1,2 @@
-# DynamicStore
-A storage engine for hierarchical arrays with variable length.
+# BlockStore
+A storage engine for hierarchical data blocks.

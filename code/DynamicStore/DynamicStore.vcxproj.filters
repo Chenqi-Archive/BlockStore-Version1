@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="core.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="engine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -33,11 +30,11 @@
     <ClInclude Include="engine_impl_format.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="core.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="engine_impl_win32.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="engine_impl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

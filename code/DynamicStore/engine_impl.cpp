@@ -9,6 +9,19 @@ DYNAMICSTORE_API std::unique_ptr<Engine> Engine::Create(const wchar file[]) {
 }
 
 
+EngineImpl::EngineImpl(const wchar file[]) :_file(file) {
+	if (_file.GetSize() == 0) {
+		Format();
+	} else {
+		_file.DoMapping();
+		if (LoadAndCheck() == false) {
+			Format();
+		}
+	}
+}
+
+EngineImpl::~EngineImpl() {}
+
 bool EngineImpl::LoadAndCheck() {
 	if (_size == 0 || _size % cluster_size != 0) { return false; }
 

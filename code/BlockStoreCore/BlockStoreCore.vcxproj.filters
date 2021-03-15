@@ -15,25 +15,19 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="test.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="test_static.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
+    <ClInclude Include="win32_file.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="core.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="uncopyable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="test_TextEditor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_array_length.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_array_allocation.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_static.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
+    <ClCompile Include="win32_file.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "engine_impl_format.h"
-#include "array.h"
+#include "../BlockStoreCore/win32_file.h"
 
 
 BEGIN_NAMESPACE(DynamicStore)
@@ -15,23 +15,7 @@ public:
 
 	//// system file api ////
 private:
-	using HANDLE = void*;
-	HANDLE _file;
-	uint64 _size;
-private:
-	void SetSize(uint64 size);
-
-
-	//// file map view cache management ////
-
-	/* not implemented yet, just map the entire file. */
-	/* put the file map view cache in a seperate class. (Win32File) */
-private:
-	HANDLE _file_map;
-	void* _map_view_address;
-private:
-	void DoMapping();
-	void UndoMapping();
+	Win32File _file;
 private:
 	void* GetClusterAddress(uint64 cluster_offset) const {
 		assert((cluster_offset & ~cluster_offset_mask) == 0);
