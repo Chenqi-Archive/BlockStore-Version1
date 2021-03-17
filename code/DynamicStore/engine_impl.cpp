@@ -596,7 +596,7 @@ void EngineImpl::ReadArray(ArrayIndex index, uint64 offset, uint64 size, void* d
 	if (!IsIndexValid(index)) { throw std::invalid_argument("invalid array index"); }
 	if (size == 0) { return; }
 	IndexEntry entry = GetIndexEntry(index);
-	if (offset >= entry.array_size || offset + size >= entry.array_size) { throw std::invalid_argument("invalid offset or size"); }
+	if (offset >= entry.array_size || offset + size > entry.array_size) { throw std::invalid_argument("invalid offset or size"); }
 	BlockType type = GetBlockType(entry.array_size);
 	if (type == BlockType::L8) {
 		memcpy(data, (char*)&entry.data + offset, size); 
@@ -625,7 +625,7 @@ void EngineImpl::WriteArray(ArrayIndex index, const void* data, uint64 size, uin
 	if (!IsIndexValid(index)) { throw std::invalid_argument("invalid array index"); }
 	if (size == 0) { return; }
 	IndexEntry entry = GetIndexEntry(index);
-	if (offset >= entry.array_size || offset + size >= entry.array_size) { throw std::invalid_argument("invalid offset or size"); }
+	if (offset >= entry.array_size || offset + size > entry.array_size) { throw std::invalid_argument("invalid offset or size"); }
 	BlockType type = GetBlockType(entry.array_size);
 	if (type == BlockType::L8) {
 		memcpy((char*)&entry.data + offset, data, size);

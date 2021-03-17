@@ -23,9 +23,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="test_TextEditor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="test_array_length.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -33,6 +30,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="test_static.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_data_storage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
