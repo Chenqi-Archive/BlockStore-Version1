@@ -1,4 +1,4 @@
-#include "test_static.h"
+//#include "test_static.h"
 
 
 #ifdef _DEBUG

@@ -14,7 +14,7 @@ Win32File::Win32File(const wchar file[], CreateMode create_mode, AccessMode acce
 
 	_file = CreateFileW(file, (DWORD)access_mode, (DWORD)share_mode, NULL, (DWORD)create_mode, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (_file == INVALID_HANDLE_VALUE) { throw std::invalid_argument("open file error"); }
-	BOOL result = GetFileSizeEx(_file, (PLARGE_INTEGER)&_size); assert(result == true);
+	BOOL result = GetFileSizeEx(_file, (PLARGE_INTEGER)&_size); assert(result == TRUE);
 }
 
 Win32File::~Win32File() {
@@ -25,8 +25,8 @@ Win32File::~Win32File() {
 void Win32File::SetSize(uint64 size) {
 	UndoMapping();
 	BOOL result;
-	result = SetFilePointerEx(_file, (LARGE_INTEGER&)size, NULL, FILE_BEGIN); assert(result == true);
-	result = SetEndOfFile(_file); assert(result == true);
+	result = SetFilePointerEx(_file, (LARGE_INTEGER&)size, NULL, FILE_BEGIN); assert(result == TRUE);
+	result = SetEndOfFile(_file); assert(result == TRUE);
 	_size = size;
 }
 

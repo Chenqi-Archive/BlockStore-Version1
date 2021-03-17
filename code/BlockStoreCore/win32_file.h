@@ -9,18 +9,19 @@ BEGIN_NAMESPACE(BlockStoreCore)
 
 class Win32File : Uncopyable {
 public:
-	enum class CreateMode {	        //	| already existing	|  not existing	|  
+	using uint = unsigned int;
+	enum class CreateMode : uint {  //	| already existing	|  not existing	|  
 		CreateAlways = 2,			//	| 		clear		|	  create	|
 		OpenAlways = 4,				//	| 		open		|	  create	|
 		CreateNew = 1,				//	| 	    error		|	  create	|
 		OpenExisting = 3,			//	| 		open		|	  error		|
 		TruncateExisting = 5		//	| 		clear		|	  error		|
 	};
-	enum class AccessMode {
+	enum class AccessMode : uint {
 		ReadOnly = 0x80000000L,		// GENERIC_READ
 		ReadWrite = 0xC0000000L,	// GENERIC_READ | GENERIC_WRITE
 	};
-	enum class ShareMode {
+	enum class ShareMode : uint {
 		None = 0x00000000,			// NULL
 		ReadOnly = 0x00000001,		// FILE_SHARE_READ
 		ReadWrite = 0x00000003,		// FILE_SHARE_READ | FILE_SHARE_WRITE
@@ -56,7 +57,7 @@ public:
 	void DoMapping();
 	void UndoMapping();
 	bool IsMapped() const { return _map_view_address != nullptr; }
-	void* GetMapViewAddress() const { return _map_view_address; }
+	void* GetMapViewAddress() const { if (!IsMapped()) { throw std::invalid_argument("file not mapped"); } return _map_view_address; }
 };
 
 

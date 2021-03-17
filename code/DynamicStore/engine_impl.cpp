@@ -1,6 +1,13 @@
 #include "engine_impl.h"
 
 
+#ifdef _DEBUG
+#pragma comment(lib, "../build/x64/Debug/BlockStoreCore.lib")
+#else
+#pragma comment(lib, "../build/x64/Release/BlockStoreCore.lib")
+#endif // _DEBUG
+
+
 BEGIN_NAMESPACE(DynamicStore)
 
 
@@ -9,36 +16,43 @@ DYNAMICSTORE_API std::unique_ptr<Engine> Engine::Create(const wchar file[]) {
 }
 
 
-EngineImpl::EngineImpl(const wchar file[]) :_file(file) {
+EngineImpl::EngineImpl(const wchar file[]) : _file(file) {
 	if (_file.GetSize() == 0) {
 		Format();
 	} else {
 		_file.DoMapping();
+		UpdateStaticMetadataAddress();
 		if (LoadAndCheck() == false) {
 			Format();
 		}
 	}
 }
 
-EngineImpl::~EngineImpl() {}
+EngineImpl::~EngineImpl() {
+	// Trim the size reserved but not used.
+	uint64 file_size = _file.GetSize();
+	if (file_size > _static_metadata->used_size) {
+		_file.SetSize(_static_metadata->used_size);
+	}
+}
 
 bool EngineImpl::LoadAndCheck() {
-	if (_size == 0 || _size % cluster_size != 0) { return false; }
+	uint64 file_size = _file.GetSize();
+	assert(file_size != 0);
+	if (file_size % cluster_size != 0) { return false; }
 
-	StaticMetadata& static_metadata = GetStaticMetadata();
-
-	if (static_metadata.file_size != _size) { return false; }
+	if (_static_metadata->used_size > file_size) { return false; }
 
 	if (true) {
-		uint64 size = static_metadata.index_table_entry.array_size;
-		if (size > cluster_size) {
-			if (size % cluster_size != 0) { return false; }
+		uint64 index_table_size = _static_metadata->index_table_entry.array_size;
+		if (index_table_size > cluster_size) {
+			if (index_table_size % cluster_size != 0) { return false; }
 		} else {
-			if (block_size_table[(uint64)GetBlockType(size)] != size) { return false; }
+			if (block_size_table[(uint64)GetBlockType(index_table_size)] != index_table_size) { return false; }
 		}
 	}
 	
-	if (static_metadata.user_metadata_size > max_user_metadata_size) { return false; }
+	if (_static_metadata->user_metadata_size > max_user_metadata_size) { return false; }
 
 	assert(CheckConsistency() == true);
 
@@ -47,18 +61,19 @@ bool EngineImpl::LoadAndCheck() {
 
 void EngineImpl::Format() {
 	// Set file size to 4k.
-	SetSize(cluster_size);
+	_file.SetSize(cluster_size);
+	_file.DoMapping();
+	UpdateStaticMetadataAddress();
 
 	// Initialize metadata.
-	StaticMetadata& static_metadata = GetStaticMetadata();
-	static_metadata.file_size = _size;
-	static_metadata.index_table_entry.array_size = 8;
-	static_metadata.index_table_entry.data = 0;
-	static_metadata.free_index_head = free_index_tail;
-	for (uint64 block_type = 1; block_type < block_type_number; ++block_type) {
-		static_metadata.free_block_head[block_type] = free_block_tail;
+	_static_metadata->index_table_entry.array_size = 8;
+	_static_metadata->index_table_entry.data = 0;
+	_static_metadata->free_index_head = free_index_tail;
+	for (uint64 block_type = 1; block_type < block_type_number - 1; ++block_type) {
+		_static_metadata->free_block_head[block_type] = free_block_tail;
 	}
-	static_metadata.user_metadata_size = 0;
+	_static_metadata->free_cluster_head = free_cluster_tail;
+	_static_metadata->user_metadata_size = 0;
 
 	// Divide the remaining space of the first cluster to specified blocks below:
 	// 		| 0               | 256             | 512             | 768             |
@@ -72,68 +87,100 @@ void EngineImpl::Format() {
 	InitializeClusterSection(BlockType::L64, 0, 1024, 2048);
 	InitializeClusterSection(BlockType::L128, 0, 2048, 3072);
 	InitializeClusterSection(BlockType::L256, 0, 3072, 4096);
+
+	// Set used size to 4k.
+	_static_metadata->used_size = cluster_size;
 }
 
 bool EngineImpl::CheckConsistency() {
+
+	/* to implement */
+
 	return true;
 }
 
 void EngineImpl::LoadUserMetadata(void* data, uint64 size) const {
 	assert(size <= max_user_metadata_size);
-	StaticMetadata& static_metadata = GetStaticMetadata();
-	memcpy(data, static_metadata.user_metadata, std::min(static_metadata.user_metadata_size, size));
+	memcpy(data, _static_metadata->user_metadata, std::min(_static_metadata->user_metadata_size, size));
 }
 
 void EngineImpl::StoreUserMetadata(const void* data, uint64 size) {
 	assert(size <= max_user_metadata_size);
-	StaticMetadata& static_metadata = GetStaticMetadata();
-	static_metadata.user_metadata_size = size;
-	memcpy(static_metadata.user_metadata, data, size);
+	_static_metadata->user_metadata_size = size;
+	memcpy(_static_metadata->user_metadata, data, size);
+}
+
+void EngineImpl::ReserveMoreCluster(uint64 cluster_number) {
+	uint64 old_size = _file.GetSize();
+	assert(old_size >= _static_metadata->used_size && old_size % cluster_size == 0);
+	_file.SetSize(old_size + cluster_size * cluster_number); 
+	_file.DoMapping();
+	UpdateStaticMetadataAddress();
+}
+
+uint64 EngineImpl::AllocateCluster() {
+	uint64 file_size = _file.GetSize();
+	uint64 current_free_cluster = _static_metadata->free_cluster_head;
+	if (current_free_cluster == free_cluster_tail) {
+		assert(_static_metadata->used_size <= file_size);
+		if (_static_metadata->used_size == file_size) {
+			ReserveMoreCluster(1);
+		}
+		current_free_cluster = _static_metadata->used_size;
+		_static_metadata->used_size += cluster_size;
+	} else {
+		uint64 next_free_cluster = Get<uint64>(current_free_cluster);
+		_static_metadata->free_cluster_head = next_free_cluster;
+	}
+	return current_free_cluster;
+}
+
+void EngineImpl::DeallocateCluster(uint64 cluster_offset) {
+	assert(cluster_offset % cluster_size == 0);
+	uint64 next_free_cluster = _static_metadata->free_cluster_head;
+	Set<uint64>(cluster_offset, next_free_cluster);
+	_static_metadata->free_cluster_head = cluster_offset;
 }
 
 uint64 EngineImpl::InitializeClusterSection(BlockType block_type, uint64 cluster_offset, uint64 begin_offset, uint64 end_offset) {
-	assert(block_type > BlockType::L8 && block_type < BlockType::L4096Plus);
+	assert(block_type > BlockType::L8 && block_type < BlockType::L4096);
 	uint64 block_size = block_size_table[(uint64)block_type];
+	uint64 next_free_block = _static_metadata->free_block_head[(uint64)block_type];
 	void* cluster_address = GetClusterAddress(cluster_offset);
-	uint64 next_free_block = GetStaticMetadata().free_block_head[(uint64)block_type];
 	for (uint64 block_offset = end_offset - block_size; block_offset >= begin_offset && block_offset < end_offset; block_offset -= block_size) {
 		Set<uint64>(cluster_address, block_offset, next_free_block);
 		next_free_block = cluster_offset + block_offset;
 	}
-	return GetStaticMetadata().free_block_head[(uint64)block_type] = next_free_block;
+	return _static_metadata->free_block_head[(uint64)block_type] = next_free_block;
 }
 
 uint64 EngineImpl::InitializeCluster(BlockType block_type, uint64 cluster_offset) {
 	return InitializeClusterSection(block_type, cluster_offset, 0, cluster_size);
 }
 
-uint64 EngineImpl::ExtendFileByOneCluster() {
-	uint64 old_size = _size;
-	assert(old_size == GetStaticMetadata().file_size && old_size % cluster_size == 0);
-	SetSize(old_size + cluster_size);
-	GetStaticMetadata().file_size = _size;
-	return old_size;
-}
-
 uint64 EngineImpl::AllocateBlock(BlockType block_type) {
 	assert(block_type > BlockType::L8 && block_type < BlockType::L4096Plus);
-	uint64 current_free_block = GetStaticMetadata().free_block_head[(uint64)block_type];
-	if (current_free_block == free_block_tail) {
-		uint64 cluster_offset = ExtendFileByOneCluster();
-		current_free_block = InitializeCluster(block_type, cluster_offset);
+	if (block_type == BlockType::L4096) {
+		return AllocateCluster();
+	} else {
+		uint64 current_free_block = _static_metadata->free_block_head[(uint64)block_type];
+		if (current_free_block == free_block_tail) {
+			uint64 cluster_offset = AllocateCluster();
+			current_free_block = InitializeCluster(block_type, cluster_offset);
+		}
+		assert(current_free_block % block_size_table[(uint64)block_type] == 0);
+		uint64 next_free_block = Get<uint64>(current_free_block);
+		_static_metadata->free_block_head[(uint64)block_type] = next_free_block;
+		return current_free_block;
 	}
-	assert(current_free_block % block_size_table[(uint64)block_type] == 0);
-	uint64 next_free_block = Get<uint64>(current_free_block);
-	GetStaticMetadata().free_block_head[(uint64)block_type] = next_free_block;
-	return current_free_block;
 }
 
 void EngineImpl::DeallocateBlock(BlockType block_type, uint64 block_offset) {
 	assert(block_type > BlockType::L8 && block_type < BlockType::L4096Plus);
 	assert(block_offset % block_size_table[(uint64)block_type] == 0);
-	uint64 next_free_block = GetStaticMetadata().free_block_head[(uint64)block_type];
+	uint64 next_free_block = _static_metadata->free_block_head[(uint64)block_type];
 	Set<uint64>(block_offset, next_free_block);
-	GetStaticMetadata().free_block_head[(uint64)block_type] = block_offset;
+	_static_metadata->free_block_head[(uint64)block_type] = block_offset;
 }
 
 
@@ -152,13 +199,13 @@ EngineImpl::L4096PlusClusterIterator::L4096PlusClusterIterator(EngineImpl& engin
 void EngineImpl::L4096PlusClusterIterator::ExpandToSizeOfLevel(uint64 level, uint64 new_cluster_number) {
 	assert(level < stack_level_count);
 	assert(cluster_level_stack[level].cluster_number < new_cluster_number);
+	engine.ReserveMoreCluster(new_cluster_number - cluster_level_stack[level].cluster_number);
 	if (level == stack_level_count - 1) {
 		assert(new_cluster_number <= cluster_index_number);
 		void* cluster_address = engine.GetClusterAddress(entry.offset & cluster_offset_mask);
 		uint64* root_cluster_index = (uint64*)((char*)cluster_address + (entry.offset & ~cluster_offset_mask));
 		for (uint64 current_cluster = cluster_level_stack[level].cluster_number; current_cluster < new_cluster_number; ++current_cluster) {
-		#error map view address invalid after remapping, can first read out, fill, then write back
-			root_cluster_index[current_cluster] = engine.AllocateBlock(BlockType::L4096);
+			root_cluster_index[current_cluster] = engine.AllocateCluster();
 		}
 	} else {
 		uint64 current_cluster_logic_index = cluster_level_stack[level].cluster_number;
@@ -168,8 +215,7 @@ void EngineImpl::L4096PlusClusterIterator::ExpandToSizeOfLevel(uint64 level, uin
 			uint64 current_cluster_index = current_cluster_logic_index & cluster_index_mask;
 			for (; current_cluster_index < cluster_index_number && current_cluster_logic_index < new_cluster_number;
 				 ++current_cluster_index, ++current_cluster_logic_index) {
-			#error the same problem
-				cluster_address[current_cluster_index] = engine.AllocateBlock(BlockType::L4096);
+				cluster_address[current_cluster_index] = engine.AllocateCluster();
 			}
 		} while (current_cluster_logic_index < new_cluster_number);
 	}
@@ -184,7 +230,7 @@ void EngineImpl::L4096PlusClusterIterator::ShrinkToSizeOfLevel(uint64 level, uin
 		void* cluster_address = engine.GetClusterAddress(entry.offset & cluster_offset_mask);
 		uint64* root_cluster_index = (uint64*)((char*)cluster_address + (entry.offset & ~cluster_offset_mask));
 		for (uint64 current_cluster = new_cluster_number; current_cluster < cluster_level_stack[level].cluster_number; ++current_cluster) {
-			engine.DeallocateBlock(BlockType::L4096, root_cluster_index[current_cluster]);
+			engine.DeallocateCluster(root_cluster_index[current_cluster]);
 		}
 	} else {
 		uint64 current_cluster_logic_index = new_cluster_number;
@@ -194,7 +240,7 @@ void EngineImpl::L4096PlusClusterIterator::ShrinkToSizeOfLevel(uint64 level, uin
 			uint64 current_cluster_index = current_cluster_logic_index & cluster_index_mask;
 			for (; current_cluster_index < cluster_index_number && current_cluster_logic_index < cluster_level_stack[level].cluster_number;
 				 ++current_cluster_index, ++current_cluster_logic_index) {
-				engine.DeallocateBlock(BlockType::L4096, cluster_address[current_cluster_index]);
+				engine.DeallocateCluster(cluster_address[current_cluster_index]);
 			}
 		} while (current_cluster_logic_index < cluster_level_stack[level].cluster_number);
 	}
@@ -215,7 +261,7 @@ void EngineImpl::L4096PlusClusterIterator::ExpandToSize(uint64 new_size) {
 		new_level_count = new_level_count + 1;
 		cluster_number = GetClusterNumber(cluster_number * cluster_index_size);
 	}
-	assert(new_level_count > 0);
+	assert(new_level_count > 0 && new_level_count <= max_cluster_hierarchy_depth);
 	if (new_level_count < stack_level_count) {
 	} else if (new_level_count == stack_level_count) {
 		// Reallocate root index block.
@@ -243,7 +289,7 @@ void EngineImpl::L4096PlusClusterIterator::ExpandToSize(uint64 new_size) {
 		BlockType old_type = GetBlockType(old_size);
 		uint64 prev_root_offset = entry.offset;
 		if (old_type != BlockType::L4096) {
-			uint64 new_offset = engine.AllocateBlock(BlockType::L4096);
+			uint64 new_offset = engine.AllocateCluster();
 			engine.MoveData(prev_root_offset, new_offset, std::min(old_size, new_size));
 			engine.DeallocateBlock(old_type, prev_root_offset);
 			prev_root_offset = new_offset;
@@ -251,7 +297,7 @@ void EngineImpl::L4096PlusClusterIterator::ExpandToSize(uint64 new_size) {
 		// Allocate 4k clusters from stack_level_count to new_level_count - 2.
 		uint64 current_level = stack_level_count;
 		for (; current_level < new_level_count - 1; current_level++) {
-			uint64 current_root_offset = engine.AllocateBlock(BlockType::L4096);
+			uint64 current_root_offset = engine.AllocateCluster();
 			engine.Set<uint64>(current_root_offset, prev_root_offset);
 			prev_root_offset = current_root_offset;
 			cluster_level_stack[current_level].cluster_number = 1;
@@ -275,6 +321,7 @@ void EngineImpl::L4096PlusClusterIterator::ExpandToSize(uint64 new_size) {
 }
 
 void EngineImpl::L4096PlusClusterIterator::ShrinkToSize(uint64 new_size) {
+	assert(stack_level_count > 0 && stack_level_count <= max_cluster_hierarchy_depth);
 	uint64 new_cluster_level_number[max_cluster_hierarchy_depth];
 	uint64 new_level_count = 0;
 	uint64 cluster_number = GetClusterNumber(new_size);
@@ -289,6 +336,8 @@ void EngineImpl::L4096PlusClusterIterator::ShrinkToSize(uint64 new_size) {
 		cluster_number = GetClusterNumber(cluster_number * cluster_index_size);
 	}
 	assert(new_level_count <= stack_level_count);
+	uint64 old_size = cluster_level_stack[stack_level_count - 1].cluster_number * cluster_index_size;  // old root block size
+	entry.array_size = new_size;
 	// Deallocate clusters from level 0 to new_level_count - 1 in normal order.
 	for (uint64 current_level = 0; current_level < new_level_count; ++current_level) {
 		ShrinkToSizeOfLevel(current_level, new_cluster_level_number[current_level]);
@@ -296,7 +345,6 @@ void EngineImpl::L4096PlusClusterIterator::ShrinkToSize(uint64 new_size) {
 	if (new_level_count < stack_level_count && cluster_number > 1) {
 	} else if(new_level_count == stack_level_count) {
 		// Reallocate root index block.
-		uint64 old_size = cluster_level_stack[stack_level_count - 1].cluster_number * cluster_index_size;
 		uint64 new_size = new_cluster_level_number[new_level_count - 1] * cluster_index_size;
 		BlockType old_type = GetBlockType(old_size);
 		BlockType new_type = GetBlockType(new_size);
@@ -310,7 +358,6 @@ void EngineImpl::L4096PlusClusterIterator::ShrinkToSize(uint64 new_size) {
 		}
 	} else { // new_level_count < stack_level_count && cluster_number == 1
 		// Deallocate clusters from new_level_count to stack_level_count - 1.
-		uint64 old_size = cluster_level_stack[stack_level_count - 1].cluster_number * cluster_index_size;
 		for (uint64 current_level = new_level_count; current_level < stack_level_count; ++current_level) {
 			ShrinkToSizeOfLevel(current_level, 1);
 		}
@@ -322,22 +369,29 @@ void EngineImpl::L4096PlusClusterIterator::ShrinkToSize(uint64 new_size) {
 		// Deallocate 4k clusters from stack_level_count - 1 to new_level_count + 1.
 		for (uint64 current_level = stack_level_count - 1; current_level > new_level_count; --current_level) {
 			uint64 next_root_offset = engine.Get<uint64>(current_root_offset);
-			engine.DeallocateBlock(BlockType::L4096, current_root_offset);
+			engine.DeallocateCluster(current_root_offset);
 			current_root_offset = next_root_offset;
 			cluster_level_stack[current_level].cluster_number = 0;
 		}
 		// Downgrade new root index block depending on its size.
-		uint64 new_size = cluster_level_stack[new_level_count - 1].cluster_number * cluster_index_size;
+		uint64 new_size;
+		if (new_level_count == 0) {
+			assert(entry.array_size == cluster_size);
+			new_size = entry.array_size;
+		} else {
+			new_size = cluster_level_stack[new_level_count - 1].cluster_number * cluster_index_size;
+		}
 		BlockType new_type = GetBlockType(new_size);
 		if (new_type != BlockType::L4096) {
 			uint64 new_offset = engine.AllocateBlock(new_type);
 			engine.MoveData(new_offset, current_root_offset, new_size);
-			engine.DeallocateBlock(BlockType::L4096, current_root_offset);
+			engine.DeallocateCluster(current_root_offset);
 			entry.offset = new_offset;
+		} else {
+			entry.offset = current_root_offset;
 		}
 		stack_level_count = new_level_count;
 	}
-	entry.array_size = new_size;
 }
 
 void EngineImpl::L4096PlusClusterIterator::Resize(uint64 new_size) {
@@ -377,7 +431,7 @@ void EngineImpl::L4096PlusClusterIterator::SeekToClusterOfLevel(uint64 level, ui
 }
 
 uint64 EngineImpl::GetIndexEntryOffset(ArrayIndex index) const {
-	IndexEntry index_table_entry = GetStaticMetadata().index_table_entry;
+	IndexEntry index_table_entry = _static_metadata->index_table_entry;
 	uint64 index_entry_offset_in_table = index.value * index_entry_size;
 	assert(index_entry_offset_in_table < index_table_entry.array_size);
 	BlockType type = GetBlockType(index_table_entry.array_size);
@@ -404,13 +458,13 @@ void EngineImpl::SetIndexEntry(ArrayIndex index, IndexEntry entry) {
 
 ArrayIndex EngineImpl::InitializeIndexEntry(ArrayIndex index_begin, IndexEntry* index_entry_begin, uint64 index_entry_number) {
 	IndexEntry* index_entry_end = index_entry_begin + index_entry_number;
-	ArrayIndex next_free_index = GetStaticMetadata().free_index_head;
+	ArrayIndex next_free_index = _static_metadata->free_index_head;
 	for (IndexEntry* current_index_entry = index_entry_end - 1; current_index_entry >= index_entry_begin; --current_index_entry) {
 		current_index_entry->array_size = free_entry_array_size;
 		current_index_entry->next_free_index = next_free_index;
 		next_free_index = ArrayIndex(index_begin.value + current_index_entry - index_entry_begin);
 	}
-	return GetStaticMetadata().free_index_head = next_free_index;
+	return _static_metadata->free_index_head = next_free_index;
 }
 
 ArrayIndex EngineImpl::InitializeIndexEntry(ArrayIndex index_begin, ArrayIndex index_end){
@@ -421,23 +475,23 @@ ArrayIndex EngineImpl::InitializeIndexEntry(ArrayIndex index_begin, ArrayIndex i
 }
 
 ArrayIndex EngineImpl::ExtendIndexTable() {
-	IndexEntry index_table_entry = GetStaticMetadata().index_table_entry;
+	IndexEntry index_table_entry = _static_metadata->index_table_entry;
 	uint64 old_size = index_table_entry.array_size;
 	assert(old_size > cluster_size ? old_size % cluster_size == 0 : block_size_table[(uint64)GetBlockType(old_size)] == old_size);
 	uint64 size_to_extend = std::min(old_size, cluster_size);
 	uint64 new_size = old_size + size_to_extend;
 	index_table_entry = ResizeIndexEntry(index_table_entry, new_size);
-	GetStaticMetadata().index_table_entry = index_table_entry;
+	_static_metadata->index_table_entry = index_table_entry;
 	return InitializeIndexEntry(ArrayIndex(old_size / index_entry_size), ArrayIndex(new_size / index_entry_size));
 }
 
 ArrayIndex EngineImpl::AllocateIndex() {
-	ArrayIndex current_free_index = GetStaticMetadata().free_index_head;
+	ArrayIndex current_free_index = _static_metadata->free_index_head;
 	if (current_free_index.value == free_index_tail.value) {
 		current_free_index = ExtendIndexTable();
 	}
 	IndexEntry entry = GetIndexEntry(current_free_index);
-	GetStaticMetadata().free_index_head = entry.next_free_index;
+	_static_metadata->free_index_head = entry.next_free_index;
 	entry.array_size = 0; entry.data = 0;
 	SetIndexEntry(current_free_index, entry);
 	return current_free_index;

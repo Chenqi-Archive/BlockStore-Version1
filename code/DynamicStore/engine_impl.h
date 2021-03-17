@@ -19,9 +19,8 @@ private:
 private:
 	void* GetClusterAddress(uint64 cluster_offset) const {
 		assert((cluster_offset & ~cluster_offset_mask) == 0);
-		return (char*)_map_view_address + cluster_offset;
+		return (char*)_file.GetMapViewAddress() + cluster_offset;
 	}
-
 	template<class T>
 	static T Get(void* cluster_address, uint64 offset_in_cluster) {
 		assert(offset_in_cluster < cluster_size);
@@ -34,7 +33,6 @@ private:
 		assert(offset_in_cluster + sizeof(T) <= cluster_size);
 		*(T*)((char*)cluster_address + offset_in_cluster) = obj;
 	}
-
 	template<class T>
 	T Get(uint64 offset_in_file) const {
 		void* cluster_address = GetClusterAddress(offset_in_file & cluster_offset_mask);
@@ -45,7 +43,6 @@ private:
 		void* cluster_address = GetClusterAddress(offset_in_file & cluster_offset_mask);
 		Set<T>(cluster_address, offset_in_file & ~cluster_offset_mask, obj);
 	}
-
 	void MoveData(uint64 source_offset, uint64 destination_offset, uint64 data_size) {
 		assert(source_offset + data_size <= destination_offset || destination_offset + data_size <= source_offset);
 		uint64 source_cluster_offset = source_offset & cluster_offset_mask;
@@ -69,17 +66,24 @@ private:
 
 	//// static metadata management ////
 private:
-	StaticMetadata& GetStaticMetadata() const { return *(StaticMetadata*)GetClusterAddress(0); }
+	StaticMetadata* _static_metadata = nullptr;
+	void UpdateStaticMetadataAddress() { _static_metadata = (StaticMetadata*)GetClusterAddress(0); }
 private:
 	virtual void LoadUserMetadata(void* data, uint64 size) const override;
 	virtual void StoreUserMetadata(const void* data, uint64 size) override;
+
+
+	//// cluster management ////
+private:
+	void ReserveMoreCluster(uint64 cluster_number);
+	uint64 AllocateCluster();
+	void DeallocateCluster(uint64 cluster_offset);
 
 
 	//// separate blocks management ////
 private:
 	uint64 InitializeClusterSection(BlockType block_type, uint64 cluster_offset, uint64 begin_offset, uint64 end_offset);
 	uint64 InitializeCluster(BlockType block_type, uint64 cluster_offset);
-	uint64 ExtendFileByOneCluster();
 
 	uint64 AllocateBlock(BlockType block_type);
 	void DeallocateBlock(BlockType block_type, uint64 block_offset);
@@ -150,7 +154,7 @@ private:
 
 private:
 	bool IsIndexValid(ArrayIndex index) const {
-		return index.value < GetStaticMetadata().index_table_entry.array_size / index_entry_size;
+		return index.value < _static_metadata->index_table_entry.array_size / index_entry_size;
 	}
 public:
 	virtual ArrayIndex CreateArray() override;
