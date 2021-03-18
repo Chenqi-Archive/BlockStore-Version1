@@ -29,8 +29,7 @@ public:
 	uint64 GetLength() const { 
 		uint64 size = _engine.GetArraySize(_index);
 		if (size % element_size != 0) { throw std::invalid_argument("bad array length"); }
-		size = size / element_size;
-		return size;
+		return size / element_size;
 	}
 
 	void SetLength(uint64 length) {

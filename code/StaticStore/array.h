@@ -14,30 +14,28 @@ private:
 private:
 	Engine& _engine;
 	ArrayIndex& _index;
+	uint64 _length;
 
 public:
 	Array(Engine& engine, ArrayIndex& index) : _engine(engine), _index(index) {
-		if (_index.IsInvalid()) { throw std::invalid_argument("invalid array index"); }
-		if (_engine.GetArraySize(_index) % element_size != 0) { throw std::invalid_argument("bad array length"); }
-	}
-
-	uint64 GetLength() const {
-		uint64 size = _engine.GetArraySize(_index);
+		if (_index.IsInvalid()) { _length = 0; return; }
+		uint64 size = _engine.GetArrayData(_index).second;
 		if (size % element_size != 0) { throw std::invalid_argument("bad array length"); }
-		size = size / element_size;
-		return size;
+		_length = size / element_size;
 	}
 
-	void Load(uint64 begin, uint64 length, ElementType* buffer) const {
-		_engine.ReadArray(_index, begin * element_size, length * element_size, buffer);
+	uint64 GetLength() const { return _length; }
+
+	void Load(ElementType* buffer, uint64 length) const {
+		if (length == 0) { return; }
+		if (length > _length) { throw std::invalid_argument("invalid array length"); }
+		const void* data = _engine.GetArrayData(_index).first;
+		memcpy(buffer, data, length * element_size);
 	}
 
-	void Create(uint64 length) {
-		_index = _engine.CreateArray(length * element_size);
-	}
-
-	void Store(const ElementType* buffer, uint64 length, uint64 begin) {
-		_engine.WriteArray(_index, buffer, length * element_size, begin * element_size);
+	void Store(const ElementType* buffer, uint64 length) {
+		_index = _engine.CreateArray(buffer, length * element_size);
+		_length = length;
 	}
 };
 

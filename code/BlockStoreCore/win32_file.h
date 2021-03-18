@@ -57,7 +57,8 @@ public:
 	void DoMapping();
 	void UndoMapping();
 	bool IsMapped() const { return _map_view_address != nullptr; }
-	void* GetMapViewAddress() const { if (!IsMapped()) { throw std::invalid_argument("file not mapped"); } return _map_view_address; }
+	const void* GetMapViewAddress() const { if (!IsMapped()) { throw std::invalid_argument("file not mapped"); } return _map_view_address; }
+	void* GetMapViewAddress() { return const_cast<void*>(const_cast<const Win32File*>(this)->GetMapViewAddress()); }
 };
 
 

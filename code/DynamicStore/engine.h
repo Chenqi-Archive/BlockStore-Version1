@@ -19,6 +19,7 @@ struct ArrayIndex {
 struct ABSTRACT_BASE Engine {
 public:
 	DYNAMICSTORE_API static std::unique_ptr<Engine> Create(const wchar file[]);
+
 	virtual ~Engine() pure {}
 
 
@@ -30,7 +31,7 @@ public:
 	static constexpr uint64 max_metadata_size = 144;
 public:
 	template<class Metadata>
-	Metadata GetMetadata() { 
+	Metadata GetMetadata() const { 
 		static_assert(sizeof(Metadata) <= max_metadata_size);
 		Metadata metadata; LoadUserMetadata(&metadata, sizeof(Metadata)); return metadata;
 	}

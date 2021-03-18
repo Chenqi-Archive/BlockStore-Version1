@@ -155,6 +155,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="anonymous_file.h" />
     <ClInclude Include="core.h" />
     <ClInclude Include="win32_file.h" />
     <ClInclude Include="uncopyable.h" />

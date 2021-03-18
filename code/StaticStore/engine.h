@@ -3,6 +3,7 @@
 #include "core.h"
 
 #include <memory>
+#include <utility>
 
 
 BEGIN_NAMESPACE(StaticStore)
@@ -19,29 +20,35 @@ struct ArrayIndex {
 struct ABSTRACT_BASE Engine {
 public:
 	STATICSTORE_API static std::unique_ptr<Engine> Create(const wchar file[]);
+	STATICSTORE_API static std::unique_ptr<Engine> Create(const void* data = nullptr, uint64 size = 0);
+
 	virtual ~Engine() pure {}
 
 
 	//// load operations ////
-private:
-	virtual void GetMetadata(void* data, uint64 size) const pure;
+public:
+	virtual std::pair<const void*, uint64> GetRawData() const pure;
+public:
+	virtual std::pair<const void*, uint64> GetMetaData() const pure;
+	virtual std::pair<const void*, uint64> GetArrayData(ArrayIndex index) const pure;
 public:
 	template<class Metadata> 
-	Metadata GetMetadata() { Metadata metadata; GetMetadata(&metadata, sizeof(Metadata)); return metadata; }
-public:
-	virtual uint64 GetArraySize(ArrayIndex index) const pure;
-	virtual void ReadArray(ArrayIndex index, uint64 offset, uint64 size, void* data) const pure;
+	Metadata GetMetadata() const { 
+		Metadata metadata; 
+		auto [data, size] = GetMetaData();
+		memcpy(&metadata, data, std::min(size, sizeof(Metadata)));
+		return metadata; 
+	}
 
 
 	//// save operations ////
-private:
-	virtual void Format(const void* metadata, uint64 size) pure;
+public:
+	virtual void Format() pure;
+	virtual const ArrayIndex CreateArray(const void* data, uint64 size) pure;
+	virtual void SetMetadata(const void* metadata, uint64 metadata_size) pure;
 public:
 	template<class Metadata> 
-	void Format(const Metadata& metadata) { Format(&metadata, sizeof(Metadata)); }
-public:
-	virtual ArrayIndex CreateArray(uint64 array_size) pure;
-	virtual void WriteArray(ArrayIndex index, const void* data, uint64 size, uint64 offset) pure;
+	void SetMetadata(const Metadata& metadata) { SetMetadata(&metadata, sizeof(Metadata)); }
 };
 
 

@@ -24,6 +24,9 @@
     <ClInclude Include="uncopyable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="anonymous_file.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="win32_file.cpp">

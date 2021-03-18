@@ -12,13 +12,14 @@ BEGIN_NAMESPACE(StaticStore)
 
 
 STATICSTORE_API std::unique_ptr<Engine> Engine::Create(const wchar file[]) {
-	return std::make_unique<EngineImpl>(file);
+	return std::make_unique<EngineImpl<Win32File>>(file);
 }
 
-
-EngineImpl::EngineImpl(const wchar file[]) :_file(file) {}
-
-EngineImpl::~EngineImpl() {}
+STATICSTORE_API std::unique_ptr<Engine> Engine::Create(const void* data, uint64 size) {
+	auto engine = std::make_unique<EngineImpl<AnonymousFile>>(L"");
+	engine->SetRawData(data, size);
+	return engine;
+}
 
 
 END_NAMESPACE(StaticStore)

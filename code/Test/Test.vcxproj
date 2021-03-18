@@ -152,13 +152,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="test.cpp" />
-    <ClCompile Include="test_static.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="test_array_allocation.h" />
     <ClInclude Include="test_array_length.h" />
     <ClInclude Include="test_data_storage.h" />
     <ClInclude Include="test_static.h" />
+    <ClInclude Include="test_static_serialize.h" />
+    <ClInclude Include="test_static_TextEditor.h" />
+    <ClInclude Include="test_TextEditor.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
