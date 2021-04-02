@@ -1,10 +1,5 @@
-#include "test_static_serialize.h"
+#include "test_static.h"
 
 
-#ifdef _DEBUG
-#pragma comment(lib, "../build/x64/Debug/DynamicStore.lib")
-#pragma comment(lib, "../build/x64/Debug/StaticStore.lib")
-#else
-#pragma comment(lib, "../build/x64/Release/DynamicStore.lib")
-#pragma comment(lib, "../build/x64/Release/StaticStore.lib")
-#endif // _DEBUG
+#pragma comment(lib, "DynamicStore.lib")
+#pragma comment(lib, "StaticStore.lib")

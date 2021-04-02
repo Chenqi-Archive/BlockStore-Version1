@@ -19,18 +19,18 @@ Engine& GetEngine() {
 	return *engine;
 }
 
+struct ParagraphData {
+	unsigned int _indent_level = 0;
+	char32_t _label = U'\0';
+	ArrayIndex<wchar> _text_array_index;
+};
 
 struct TextEditorData {
-	ArrayIndex _paragraph_list_index;
+	ArrayIndex<ParagraphData> _paragraph_list_index;
 };
 
 class TextEditor : public /*ListLayout,*/ TextEditorData {
 private:
-	struct ParagraphData {
-		unsigned int _indent_level = 0;
-		char32_t _label = U'\0';
-		ArrayIndex _text_array_index;
-	};
 
 	class Paragraph : public /*TextBox,*/ ParagraphData {
 	private:
@@ -49,8 +49,8 @@ private:
 		}
 		Paragraph(TextEditor& text_editor, ParagraphData data) :
 			ParagraphData(data), _text_editor(text_editor), _text_array(GetEngine(), _text_array_index) {
-			_text.resize(_text_array.GetLength());
-			_text_array.Load(_text.data(), _text_array.GetLength());
+			auto [text, length] = _text_array.Load();
+			_text.assign(text, length);
 		}
 		void Save() {
 			_text_array.Store(_text.data(), _text.length());
@@ -64,20 +64,18 @@ private:
 public:
 	//TextEditor() : TextEditorData(), _paragraph_array(GetEngine(), _paragraph_list_index) {}
 	TextEditor(TextEditorData data) : TextEditorData(data), _paragraph_array(GetEngine(), _paragraph_list_index) {
-		vector<ParagraphData> tmp_buffer; tmp_buffer.resize(_paragraph_array.GetLength());
-		_paragraph_array.Load(tmp_buffer.data(), _paragraph_array.GetLength());
-		for (auto& data : tmp_buffer) {
-			_paragraph_list.emplace_back(*this, data);
+		auto [paragraph_data, length] = _paragraph_array.Load();
+		for (uint64 i = 0; i < length; ++i) {
+			_paragraph_list.emplace_back(*this, paragraph_data[i]);
 			_paragraph_list.back()._list_position = --_paragraph_list.end();
 		}
 	}
 	void Save() {
-		vector<ParagraphData> tmp_buffer; tmp_buffer.reserve(_paragraph_list.size());
+		auto [paragraph_data, length] = _paragraph_array.Store(_paragraph_list.size());
 		for (auto& paragraph : _paragraph_list) {
 			paragraph.Save();
-			tmp_buffer.push_back(paragraph);
+			*paragraph_data = paragraph; paragraph_data++;
 		}
-		_paragraph_array.Store(tmp_buffer.data(), tmp_buffer.size());
 	}
 
 	void InsertParagraphBefore(const Paragraph& paragraph) {

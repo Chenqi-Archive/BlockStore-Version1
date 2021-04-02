@@ -1,11 +1,7 @@
 #include "engine_impl.h"
 
 
-#ifdef _DEBUG
-#pragma comment(lib, "../build/x64/Debug/BlockStoreCore.lib")
-#else
-#pragma comment(lib, "../build/x64/Release/BlockStoreCore.lib")
-#endif // _DEBUG
+#pragma comment(lib, "BlockStoreCore.lib")
 
 
 BEGIN_NAMESPACE(StaticStore)
