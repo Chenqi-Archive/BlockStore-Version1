@@ -9,7 +9,7 @@ using namespace StaticStore;
 
 
 int main() {
-	auto engine = Engine::Create(L"test_static.dat");
+	auto engine = Engine::Create(L"R:/test_static.dat");
 
 	ArrayIndex<char> root_array_index = engine->GetMetadata<ArrayIndex<char>>();
 

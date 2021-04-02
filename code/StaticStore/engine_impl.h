@@ -16,8 +16,12 @@ template<class FileType>
 class EngineImpl : public Engine {
 public:
 	EngineImpl(const wchar file[]) : _file(file) {
-		_file.DoMapping(); UpdateStaticMetadataAddress();
-		if (LoadAndCheck() == false) { Format(); }
+		if (_file.GetSize() == 0) {
+			Format();
+		} else {
+			_file.DoMapping(); UpdateStaticMetadataAddress();
+			if (LoadAndCheck() == false) { Format(); }
+		}
 	}
 
 	virtual ~EngineImpl() override {
