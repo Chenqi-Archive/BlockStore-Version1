@@ -20,6 +20,6 @@ int main() {
 	str.append("-string modified-");
 
 	engine->Format();
-	root_array.Store(str.data(), str.length());
+	root_array.Save(str.data(), str.length());
 	engine->SetMetadata<ArrayIndex<char>>(root_array_index);
 }

@@ -53,7 +53,7 @@ private:
 			_text.assign(text, length);
 		}
 		void Save() {
-			_text_array.Store(_text.data(), _text.length());
+			_text_array.Save(_text.data(), _text.length());
 		}
 	};
 
@@ -71,11 +71,12 @@ public:
 		}
 	}
 	void Save() {
-		auto [paragraph_data, length] = _paragraph_array.Store(_paragraph_list.size());
+		vector<ParagraphData> tmp_buffer; tmp_buffer.reserve(_paragraph_list.size());
 		for (auto& paragraph : _paragraph_list) {
 			paragraph.Save();
-			*paragraph_data = paragraph; paragraph_data++;
+			tmp_buffer.push_back(paragraph);
 		}
+		_paragraph_array.Save(tmp_buffer.data(), tmp_buffer.size());
 	}
 
 	void InsertParagraphBefore(const Paragraph& paragraph) {

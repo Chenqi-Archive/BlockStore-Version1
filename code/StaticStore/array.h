@@ -35,14 +35,8 @@ public:
 		return { static_cast<const ElementType*>(data), size / element_size };
 	}
 
-	void Store(const ElementType* buffer, uint64 length) {
+	void Save(const ElementType* buffer, uint64 length) {
 		_index.value = _engine.CreateArray(buffer, length * element_size);
-	}
-
-	std::pair<ElementType*, uint64> Store(uint64 length) {
-		_index.value = _engine.CreateArray(nullptr, length * element_size); assert(!_index.IsInvalid());
-		auto [data, size] = _engine.GetArrayData(_index.value); assert(size == length * element_size);
-		return { const_cast<ElementType*>(static_cast<const ElementType*>(data)), length };
 	}
 };
 

@@ -30,7 +30,7 @@ int main() {
 	str.append("-string modified-");
 
 	engine_sender->Format();
-	root_array.Store(str.data(), str.length());
+	root_array.Save(str.data(), str.length());
 	engine_sender->SetMetadata<ArrayIndex<char>>(root_array_index);
 
 	auto [raw_data, size] = engine_sender->GetRawData();
