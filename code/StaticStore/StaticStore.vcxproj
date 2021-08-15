@@ -159,7 +159,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="array.h" />
     <ClInclude Include="core.h" />
     <ClInclude Include="engine.h" />
     <ClInclude Include="engine_impl.h" />
